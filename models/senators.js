@@ -1,60 +1,45 @@
-//const MongoClient = require('mongodb').MongoClient;
 const mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 const Schema = mongoose.Schema;
-mongoose.connect('mongodb://localhost:27017/tv');
+mongoose.connect('mongodb://localhost:27017/senatorsdb');
 
-const senatorSchema = new Schema({
-  name: { type: String, required: true },
-  address: { type: String, required: true },
-  number: { type: Number, required: true },
-  faxnumber: { type: Number, required: true },
-    },
-  );
+const senatorSchema = new Schema ({
+  "id": {type: Number },
+  "party": { type: String, required: true },
+  "state": { type: String, required: true },
+  "person": { "gender": { type: String, required: true },
+              "firstname": { type: String, required: true },
+              "lastname": { type: String, required: true },
+              "birthday": { type: Date, required: true },
+            },
+  "phone": {type: String},
+  "extra": {
+    "address": {type: String},
+    "contact_form": {type: String},
+       "fax": {type: String},
+       "office": {type: String},
+  }
 
-  const Senator = mongoose.model('Senator', senatorSchema, 'usSenators');
+});
 
-  var findAllSenators = function(db, callback) {
-    var collection = db.collection('senators');
-    collection.find().sort({ "person.lastname": 1 }).toArray(function(err, results) {
-      callback(results);
+senatorSchema.statics.findAndSort = function (findRestrictions, howToRender) {
+  this
+    .find(findRestrictions)
+    .sort({ "person.lastname": 1})
+    .then(function(senators) {
+      howToRender(senators);
     });
-  };
+}
 
-  var findLargestId = function(db, callback) {
-    var collection = db.collection('senators');
-    collection.find().sort({ id:-1 }).toArray(function(err, results) {
-      db.close();
-      callback(parseInt(results[0].id));
+senatorSchema.statics.deleteSenator = function (findRestrictions, howToRender) {
+  this
+    .deleteOne(findRestrictions)
+    .sort({ "person.lastname": 1})
+    .then(function(senators) {
+      howToRender(senators);
     });
-  };
+}
 
-  var findSpecificSenator = function(db, id, callback) {
-    var collection = db.collection('senators');
-    collection.findOne({ "id": id }, function(err, doc) {
-      db.close();
-      if (err) {
-        console.log('Error fetching specific senator with id: ' + id);
-      } else {
-        callback(doc);
-      }
-    });
-  };
+const Senator = mongoose.model('Senator', senatorSchema, 'senators')
 
-  var deleteSpecificSenator = function(db, id, callback) {
-    var collection = db.collection('senators');
-    collection.deleteOne({ "id": id }).then(function(result) {
-      db.close();
-      if (result.deletedCount == 1) {
-        callback(true);
-      } else {
-        callback(false);
-      }
-    }).catch(function(error) {
-      console.log('Error deleting record');
-    });
-  };
-
-
-
-  module.exports = Senator;
+module.exports = Senator;
